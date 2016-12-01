@@ -1,0 +1,31 @@
+<filterinfo algname="mirror" algtype="0" onoff="1" drawconfig ="1" drawresult ="1" vernum="0">
+  <!-- mirror -->
+  <para>
+    <label index = "1">
+      <showname><![CDATA[base parameter]]></showname>
+      <parainfo name="sensitivity" type="list">
+        <!-- 灵敏度 -->
+        <list name="high" value = "100"/>
+        <list name="medium" value = "80"/>
+        <list name="low" value = "60"/>
+        <val value = "80"/>
+        <modflag value = "1"/>
+        <visibility value = "1"/>
+        <showname><![CDATA[sensitivity ]]></showname>
+        <comment><![CDATA[adjust sensitive]]></comment>
+      </parainfo>
+    </label>
+    <label index = "2">
+      <showname><![CDATA[advanced parameters]]></showname>
+      <parainfo name="binarythresh" type="int">
+        <min value = "0"/>
+        <max value = "255"/>
+        <val value = "20"/>
+        <modflag value = "1"/>
+        <visibility value = "0"/>
+        <showname><![CDATA[threshold]]></showname>
+        <comment><![CDATA[0,255]]]></comment>
+      </parainfo>
+    </label>
+  </para>
+</filterinfo>
