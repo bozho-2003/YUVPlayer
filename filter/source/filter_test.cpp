@@ -12,7 +12,7 @@
 #define MODULE_COMMENT    "一个简单滤镜, 调节分量增益\r\n" \
 						"不改变格式, 不改变分辨率"
 
-char *CFilter_Test::parameter_format =
+const char *CFilter_Test::parameter_format =
 "<filterinfo algname=\"mirror\" algtype=\"0\" onoff=\"1\" drawconfig =\"1\" drawresult =\"1\" vernum=\"0\">"
 "  <!-- mirror -->"
 "  <para>"

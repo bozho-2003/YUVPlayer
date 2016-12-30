@@ -21,7 +21,7 @@ public:
 	unsigned char *m_pBuf;
 	int m_bufSz;
 
-    static char *parameter_format;
+    static const char *parameter_format;
 
 	CFilter_Mirror();
 	~CFilter_Mirror();

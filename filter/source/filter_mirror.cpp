@@ -11,7 +11,7 @@
 #define MODULE_COMMENT    "图像左右翻转（镜像）"
 
 
-char *CFilter_Mirror::parameter_format =
+const char *CFilter_Mirror::parameter_format =
 "<filterinfo algname=\"mirror\" algtype=\"0\" onoff=\"1\" drawconfig =\"1\" drawresult =\"1\" vernum=\"0\">"
 "  <!-- mirror -->"
 "  <para>"

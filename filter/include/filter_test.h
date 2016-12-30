@@ -23,7 +23,7 @@ public:
 	unsigned int m_testVal2;
 	char *m_testStr;
 
-    static char *parameter_format;
+    static const char *parameter_format;
 
 	CFilter_Test();
 	~CFilter_Test();

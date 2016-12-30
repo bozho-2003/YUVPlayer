@@ -770,5 +770,6 @@ int  FilterWnd::setState(int state)
         ui->pushButton_disable->setEnabled(enable);
         enable = false;
     }
+    return 1;
 }
 

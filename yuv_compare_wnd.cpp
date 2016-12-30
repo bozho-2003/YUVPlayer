@@ -457,6 +457,7 @@ int CmpDlg::updateDiffView()
 {
     updateDiff();
     notifyView();
+    return 1;
 }
 
 void CmpDlg::onNextFrame()
@@ -805,6 +806,7 @@ int  CmpDlg::closeFile(){
 int  CmpDlg::setPlayingFlag(int flag)
 {
     m_playing = flag;
+    return 1;
 }
 
 int  CmpDlg::setState(int state)

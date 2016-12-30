@@ -4,13 +4,6 @@
 #include "imagewnd.h"
 #include "ui_imagewidget.h"
 
-#ifdef _DEBUG
-#define new DEBUG_NEW
-#undef THIS_FILE
-static char THIS_FILE[] = __FILE__;
-#endif
-
-
 
 #define  IDM_ONTOP              0x0300
 #define  IDM_ORIGIN_SIZE        0x0400
@@ -406,6 +399,7 @@ void  ImageWnd::preDisplayImage(int rectOnly)
 int  ImageWnd::updateValues()
 {
     updateValues(m_currentPt);
+    return 1;
 }
 
 int  ImageWnd::updateValues(QPoint pt, int flag){

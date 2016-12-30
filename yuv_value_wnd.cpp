@@ -36,9 +36,11 @@ int  ValWnd::enableWnd(int id, int enable){
     return 1;
 }
 int  ValWnd::enableCheck(int id,int check){
+    return 1;
 }
 
 int  ValWnd::isChecked(int id){
+    return 1;
 }
 
 
