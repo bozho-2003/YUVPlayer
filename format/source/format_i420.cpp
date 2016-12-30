@@ -95,6 +95,8 @@ int  CFormater_I420::getOutInfo(RawImage_Info *out){
     if(out == NULL)
         return E_BAD_ARG;
     out->raw_format = RAW_FORMAT_YUV444;
+    out->raw_format = RAW_FORMAT_YUV420;
+    ;
     if(m_field == FIELD_ALL){
         out->height = m_height;
     }
@@ -158,41 +160,7 @@ int  CFormater_I420::getFrame(int offset, unsigned char *pBuf, int bufsz){
         int i,j;
 
         // copy Y
-        memcpy(pBuf, m_buf, m_y_size);
-
-        // copy U
-        p1 = m_buf + m_y_size;
-        p2 = pBuf + m_y_size;
-        for(i = 0;i < m_height/2;i++){
-            for(j = 0;j < m_width/2;j++){
-                // pixel dup
-                *p2++ = *p1;
-                *p2++ =*p1++;
-            }
-            // line dup
-            p1 -= m_width/2;
-            for(j = 0;j < m_width/2;j++){
-                *p2++ = *p1;
-                *p2++ =*p1++;
-            }
-        }
-
-        // copy V
-        p1 = m_buf + m_y_size + m_y_size/4;
-        p2 = pBuf + m_y_size + m_y_size;
-        for(i = 0;i < m_height/2;i++){
-            for(j = 0;j < m_width/2;j++){
-                // pixel dup
-                *p2++ = *p1;
-                *p2++ =*p1++;
-            }
-            // line dup
-            p1 -= m_width/2;
-            for(j = 0;j < m_width/2;j++){
-                *p2++ = *p1;
-                *p2++ =*p1++;
-            }
-        }
+        memcpy(pBuf, m_buf, m_y_size * 3 / 2);
     }
     else if(index == 0){   // top field
         unsigned char *p1,*p2;
@@ -272,7 +240,8 @@ int  CFormater_I420::toYourFormat(RawImage_Info *src_info, const unsigned char *
     if(src_info == NULL)
         return -1;
 
-    if(src_info->raw_format != RAW_FORMAT_YUV444)
+    //if(src_info->raw_format != RAW_FORMAT_YUV444)
+    if(src_info->raw_format != RAW_FORMAT_YUV420)
         return -2;
 
     int outsize = src_info->width*src_info->height*3/2;

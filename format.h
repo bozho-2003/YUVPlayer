@@ -48,8 +48,15 @@ typedef struct YUV_Params{
 #define RAW_FORMAT_RGB24      2   // rgb,rgb...
 #define RAW_FORMAT_BGR24      3   // bmp image
 #define RAW_FORMAT_GREY8      4
+#define RAW_FORMAT_YUV420     5
+#define RAW_FORMAT_YUV422     6
 #define RAW_FORMAT_USER       10  // user defined format
 
+
+
+#define  VALUE_MODE_NONE    0x0
+#define  VALUE_MODE_HEX      0x1
+#define  VALUE_MODE_DEC      0x2
 
 typedef struct RawImage_Info{
     int raw_format;

@@ -58,10 +58,8 @@ int  ValWnd::getStringLine(QString& str,int lineNO, int &start,int &length)
     while(1)
     {
         lineEnd = str.toStdString().find("\r\n", lineStart);
-        //lineEnd = str.Find("\r\n",lineStart);
         if(lineEnd < 0){
             if(lineNO == 0){
-                //lineEnd = str.GetLength();
                 lineEnd = str.length();
                 break;
             }
@@ -92,7 +90,7 @@ int  ValWnd::addItem(QString grid_pos, QString pixel_pos, QString text)
     if(text.isEmpty())
         return -1;
 
-    //ui->textEdit->clear();
+
     QString show_info = QString("Grid: ") + grid_pos + QString(" Pixel: ") + pixel_pos + QString("\r\n") + text;
     ui->textEdit->setText(show_info);
     ui->textEdit->setReadOnly(true);

@@ -410,7 +410,6 @@ int  ImageWnd::updateValues()
 
 int  ImageWnd::updateValues(QPoint pt, int flag){
 
-
     unsigned char  buf[256];
     QString  buf2;
     QString  text;
@@ -453,103 +452,23 @@ int  ImageWnd::updateValues(QPoint pt, int flag){
 
     // Y component
     if(yuvFlag&1){
-        for(i = 0;i < nLine;i++){
-            int nBytes;
-            const  unsigned char *p1;
-
-            // return actual size
-            nBytes = m_pRender->getPixels_Y(x,y+i,numPixels,(unsigned char*)buf,numPixels);
-            if(nBytes <= 0)
-                break;
-            if(i == 0){
-                buf2  = QString("==Y(%1x%2)==\r\n").arg(numPixels).arg(nLine);
-                text += buf2;
-                nLineT++;
-            }
-
-            p1 = buf;
-            while(nBytes-- > 0){
-                if(valueMode == VALUE_MODE_DEC){
-                    buf2 = QString().sprintf("%.3d ",*(const unsigned char*)p1);
-                }
-                else{
-                    buf2 = QString().sprintf("%.2X ",*(const unsigned char*)p1);
-                }
-
-                text += buf2;
-                p1++;
-            }
-            text += "\r\n";
-            nLineT++;
-        }
+        buf2  = QString("==Y(%1x%2)==\r\n").arg(numPixels).arg(nLine);
+        text += buf2;
+        text += m_pRender->getPixels_YUV_str(x, y, nLine, numPixels, 0, valueMode);
     }
 
     // U component
     if(yuvFlag&2){
-        for(i = 0;i < nLine;i++){
-            int nBytes;
-            const unsigned char *p1;
-
-            nBytes = m_pRender->getPixels_U(x,y+i,numPixels,(unsigned char*)buf,numPixels);
-            if(nBytes == 0)
-                continue;
-            else if(nBytes < 0)
-                break;
-            if(i == 0){
-                buf2 = QString("==U(%1x%2)==\r\n").arg(numPixels).arg(nLine);
-                text += buf2;
-                nLineT++;
-            }
-
-            p1 = buf;
-            while(nBytes-- > 0){
-                if(valueMode == VALUE_MODE_DEC){
-                    buf2 = QString("%1 ").arg(*(const unsigned char*)p1, 2, 10);
-                }
-                else{
-                    buf2 = QString("%1 ").arg(*(const unsigned char*)p1, 2, 16);
-                }
-
-                text += buf2;
-                p1++;
-            }
-            text += "\r\n";
-            nLineT++;
-        }
+        buf2 = QString("==U(%1x%2)==\r\n").arg(numPixels).arg(nLine);
+        text += buf2;
+        text += m_pRender->getPixels_YUV_str(x, y, nLine, numPixels, 1, valueMode);
     }
 
     // V component
     if(yuvFlag&4){
-        for(i = 0;i < nLine;i++){
-            int nBytes;
-            const unsigned char *p1;
-
-            nBytes = m_pRender->getPixels_V(x,y+i,numPixels,(unsigned char*)buf,numPixels);
-            if(nBytes == 0)
-                continue;
-            else if(nBytes < 0)
-                break;
-            if(i == 0){
-                buf2 = QString("==V(%1x%2)==\r\n").arg(numPixels).arg(nLine);
-                text += buf2;
-                nLineT++;
-            }
-
-            p1 = buf;
-            while(nBytes-- > 0){
-                if(valueMode == VALUE_MODE_DEC){
-                    buf2 = QString("%1 ").arg(*(const unsigned char*)p1, 2, 10);
-                }
-                else{
-                    buf2 = QString("%1 ").arg(*(const unsigned char*)p1, 2, 16);
-                }
-
-                text += buf2;
-                p1++;
-            }
-            text += "\r\n";
-            nLineT++;
-        }
+        buf2 = QString("==V(%1x%2)==\r\n").arg(numPixels).arg(nLine);
+        text += buf2;
+        text += m_pRender->getPixels_YUV_str(x, y, nLine, numPixels, 2, valueMode);
     }
 
     m_pValuesDlg->addItem(grid_pos, pixel_pos, text);

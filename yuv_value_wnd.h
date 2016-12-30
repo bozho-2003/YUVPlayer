@@ -4,14 +4,10 @@
 
 #include <QObject>
 #include <QWidget>
+#include "format.h"
 #include "ui_yuv_value_wnd.h"
 
 #define  ITEM_NUM_MAX	3
-
-#define  VALUE_MODE_NONE    0x0
-#define  VALUE_MODE_HEX      0x1
-#define  VALUE_MODE_DEC      0x2
-
 
 
 class ValWnd : public QWidget

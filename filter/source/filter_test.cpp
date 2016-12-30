@@ -200,6 +200,7 @@ int  CFilter_Test::setParams(RawImage_Info *pInfo){
 		return E_BAD_ARG;
 
 	if(pInfo->raw_format != RAW_FORMAT_YUV444 
+        && pInfo->raw_format != RAW_FORMAT_YUV420
 		&& pInfo->raw_format != RAW_FORMAT_BGR24 
 		&& pInfo->raw_format != RAW_FORMAT_RGB24
 		&& pInfo->raw_format != RAW_FORMAT_GREY8){
@@ -210,14 +211,23 @@ int  CFilter_Test::setParams(RawImage_Info *pInfo){
 		return E_UNSUPPORTTED;
 
 	m_inInfo = *pInfo;
-	if(m_inInfo.raw_format == RAW_FORMAT_YUV444 ){
-		m_frame_size = m_inInfo.width*m_inInfo.height;
-		m_off1 = 0;
-		m_off2 = m_frame_size;
-		m_off3 = m_frame_size*2;
-		m_frame_size *= 3;
-		m_line_extra_bytes = 0;
-	}
+    if(m_inInfo.raw_format == RAW_FORMAT_YUV420 )
+    {
+        m_frame_size = m_inInfo.width*m_inInfo.height;
+        m_off1 = 0;
+        m_off2 = m_frame_size;
+        m_off3 = m_frame_size * 5 / 4;
+        m_frame_size = m_inInfo.width*m_inInfo.height * 3 / 2;
+        m_line_extra_bytes = 0;
+    }
+    else if(m_inInfo.raw_format == RAW_FORMAT_YUV444 ){
+        m_frame_size = m_inInfo.width*m_inInfo.height;
+        m_off1 = 0;
+        m_off2 = m_frame_size;
+        m_off3 = m_frame_size*2;
+        m_frame_size *= 3;
+        m_line_extra_bytes = 0;
+    }
 	else if(m_inInfo.raw_format == RAW_FORMAT_RGB24){
 		m_frame_size = m_inInfo.width*m_inInfo.height;
 		m_off1 = 0;
@@ -277,30 +287,101 @@ int  CFilter_Test::filter(unsigned char **ppData, int *pLen){
 	p3 = pData + m_off3;
     if(m_type)
     {
-        for(i = 0;i < m_inInfo.height;i++){
-            for(j = 0;j < m_inInfo.width;j++)
-            {
-                unsigned long tmp;
-                if(m_off1 >= 0){
-                    tmp = *p1 + m_gain1;
-                    if(tmp > 255) tmp = 255;
-                    *p1++ = tmp;
+        if(m_inInfo.raw_format == RAW_FORMAT_YUV420 )
+        {
+            for(i = 0;i < m_inInfo.height;i++){
+                for(j = 0;j < m_inInfo.width;j++)
+                {
+                    unsigned long tmp;
+                    if(m_off1 >= 0){
+                        tmp = *p1 + m_gain1;
+                        if(tmp > 255) tmp = 255;
+                        *p1++ = tmp;
+                    }
                 }
-                if(m_off2 >= 0){
-                    tmp = *p2 + m_gain2;
-                    if(tmp > 255) tmp = 255;
-                    *p2++ = tmp;
+            }
+            for(i = 0;i < (m_inInfo.height >> 1);i++){
+                for(j = 0;j < (m_inInfo.width >> 1);j++)
+                {
+                    unsigned long tmp;
+                    if(m_off2 >= 0){
+                        tmp = *p2 + m_gain2;
+                        if(tmp > 255) tmp = 255;
+                        *p2++ = tmp;
+                    }
+                    if(m_off3 >= 0){
+                        tmp = *p3 + m_gain3;
+                        if(tmp > 255) tmp = 255;
+                        *p3++ = tmp;
+                    }
                 }
-                if(m_off3 >= 0){
-                    tmp = *p3 + m_gain3;
-                    if(tmp > 255) tmp = 255;
-                    *p3++ = tmp;
+            }
+        }
+        else if((m_inInfo.raw_format == RAW_FORMAT_YUV444) ||
+                (m_inInfo.raw_format == RAW_FORMAT_RGB24) ||
+                (m_inInfo.raw_format == RAW_FORMAT_BGR24) ||
+                (m_inInfo.raw_format == RAW_FORMAT_GREY8))
+        {
+            for(i = 0;i < m_inInfo.height;i++){
+                for(j = 0;j < m_inInfo.width;j++)
+                {
+                    unsigned long tmp;
+                    if(m_off1 >= 0){
+                        tmp = *p1 + m_gain1;
+                        if(tmp > 255) tmp = 255;
+                        *p1++ = tmp;
+                    }
+                    if(m_off2 >= 0){
+                        tmp = *p2 + m_gain2;
+                        if(tmp > 255) tmp = 255;
+                        *p2++ = tmp;
+                    }
+                    if(m_off3 >= 0){
+                        tmp = *p3 + m_gain3;
+                        if(tmp > 255) tmp = 255;
+                        *p3++ = tmp;
+                    }
                 }
             }
         }
     }
     else
     {
+        if(m_inInfo.raw_format == RAW_FORMAT_YUV420 )
+        {
+            for(i = 0;i < m_inInfo.height;i++){
+                for(j = 0;j < m_inInfo.width;j++)
+                {
+                    unsigned long tmp;
+                    if(m_off1 >= 0){
+                        tmp = *p1 * m_gain1;
+                        if(tmp > 255) tmp = 255;
+                        *p1++ = tmp;
+                    }
+                }
+            }
+            for(i = 0;i < (m_inInfo.height / 2);i++){
+                for(j = 0;j < (m_inInfo.width / 2);j++)
+                {
+                    unsigned long tmp;
+                    if(m_off2 >= 0){
+                        tmp = *p2 * m_gain2;
+                        if(tmp > 255) tmp = 255;
+                        *p2++ = tmp;
+                    }
+                    if(m_off3 >= 0){
+                        tmp = *p3 * m_gain3;
+                        if(tmp > 255) tmp = 255;
+                        *p3++ = tmp;
+                    }
+                }
+            }
+        }
+        else if((m_inInfo.raw_format == RAW_FORMAT_YUV444) ||
+                (m_inInfo.raw_format == RAW_FORMAT_RGB24) ||
+                (m_inInfo.raw_format == RAW_FORMAT_BGR24) ||
+                (m_inInfo.raw_format == RAW_FORMAT_GREY8))
+        {
         for(i = 0;i < m_inInfo.height;i++){
             for(j = 0;j < m_inInfo.width;j++)
             {
@@ -321,6 +402,7 @@ int  CFilter_Test::filter(unsigned char **ppData, int *pLen){
                     *p3++ = tmp;
                 }
             }
+        }
         }
     }
 

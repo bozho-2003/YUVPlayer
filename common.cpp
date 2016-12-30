@@ -26,7 +26,6 @@ int myYUVToRGB(unsigned char *pYuv,unsigned char *pRgb,
     int tmp;
     int i,j;
 
-
     //
     yuv_type = yuvType;	// 1:422,2:420, 4,8
     py = pYuv;

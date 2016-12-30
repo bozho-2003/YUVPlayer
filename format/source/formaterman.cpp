@@ -69,44 +69,7 @@ int CFormaterMan::init(const char *prefix){
         m_pItems[m_num].pf_get_interface = inner_formaters[i];
         m_num++;
     }
-#if 0
-    CString  path;
-    CString  path2;
-    CFileFind finder;
-    int bFind;
 
-    m_prefix = prefix;
-    path = m_prefix + "\\Formater_*.dll";
-    bFind = finder.FindFile(path);
-    while(bFind){
-        HINSTANCE hDLL;
-        yuv_formater_get_interface_func pf_func;
-
-        bFind = finder.FindNextFile();
-        path = finder.GetFilePath();
-
-        // filename only, added on 2008/1030
-        path2 = finder.GetFileName();
-
-        hDLL = LoadLibrary(path);
-        if(hDLL == NULL)
-            continue;
-
-        pf_func = (yuv_formater_get_interface_func)GetProcAddress(hDLL,"yuv_formater_get_interface");
-        if(pf_func == NULL)
-            continue;
-
-        if(m_num >= m_size){
-            if(expand() < 0)
-                return -2;
-        }
-
-        m_pItems[m_num].path = path;
-        m_pItems[m_num].pf_get_interface = pf_func;
-        m_pItems[m_num].m_hDLL = hDLL;
-        m_num++;
-    }
-#endif
     return m_num;
 }
 

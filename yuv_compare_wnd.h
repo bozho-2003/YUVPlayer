@@ -63,7 +63,6 @@ private:
     int  m_showYUV;
     int  m_fps;
 
-
     int  m_bGridOn;
     int  m_gridXNum;
     int  m_gridYNum;
@@ -133,6 +132,7 @@ public slots:
     void onStop();
     void onPrevFrame();
     void onNextFrame();
+    void onSeekFrame();
 
     void onCompareComponentChanged(QString itemName);
     void onCompareModeChanged(QString itemName);

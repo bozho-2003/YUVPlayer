@@ -56,9 +56,10 @@ class CRender{
     void *m_pBits;
 
     // pixel info
-    int m_linePitch;   // for 3 compnent
+    int m_linePitch[3];   // for 3 compnent
+    int m_offs[3];  // for 3 compnent
     int m_step;
-    int m_offs[3];
+
     int m_pixelFormat;
 
     //
@@ -92,16 +93,18 @@ public:
     int getPixels_U(int x, int y, int cx, unsigned char *buf, int bufsz);
     int getPixels_V(int x, int y, int cx, unsigned char *buf, int bufsz);
 
+    QString getPixels_YUV_str(int x, int y, int nLine, int numPixels, int yuv_flag, int valueMode);
+
     int getPixelFormat(){
         if(m_pixelFormat != 2 )
             return 3;
         else
             return m_pixelFormat;
     };
-    int getPixels_3x3(int x, int y, unsigned char *y_buf, unsigned char* u_buf, unsigned char *v_buf);
 
     int destroy();
 
+    int yuv420_2_rgb24(unsigned char *yuv_buf, unsigned char *bgr_buf, int width, int height);
     int yuv444_2_rgb24(unsigned char *yuv_buf, unsigned char *bgr_buf, int width, int height);
     int rgb24_2_rgb24(unsigned char *yuv_buf, unsigned char *bgr_buf, int width, int height);
     int bgr24_2_rgb24(unsigned char *yuv_buf, unsigned char *bgr_buf, int width, int height);
@@ -109,10 +112,13 @@ public:
 
     const QString getErrMsg();
 
-    int yuvDiff_bi_all(CRender *pref, const unsigned char *pSrc1, const unsigned char *pSrc2, int threshold);
-    int yuvDiff_diff_all(CRender *pref, const unsigned char *pSrc1, const unsigned char *pSrc2);
-    int yuvDiff_bi_comp(CRender *pref, const unsigned char *pSrc1, const unsigned char *pSrc2, int threshold, int comp_id);
-    int yuvDiff_diff_comp(CRender *pref, const unsigned char *pSrc1, const unsigned char *pSrc2, int comp_id);
+    int yuvDiff_bi_all(CRender *pref, const unsigned char *pSrc1, const unsigned char *pSrc2, int threshold, int compare_type);
+    //int yuvDiff_bi_all(CRender *pref, const unsigned char *pSrc1, const unsigned char *pSrc2, int threshold);
+    int yuvDiff_bi_comp(CRender *pref, const unsigned char *pSrc1, const unsigned char *pSrc2, int threshold,int compare_type, int comp_id);
+    //int yuvDiff_bi_comp(CRender *pref, const unsigned char *pSrc1, const unsigned char *pSrc2, int threshold, int comp_id);
+
+    //int yuvDiff_diff_all(CRender *pref, const unsigned char *pSrc1, const unsigned char *pSrc2);
+    //int yuvDiff_diff_comp(CRender *pref, const unsigned char *pSrc1, const unsigned char *pSrc2, int comp_id);
 
 };
 

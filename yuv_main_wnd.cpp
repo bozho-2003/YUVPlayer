@@ -17,6 +17,7 @@ YUVPlayerMainWidget::YUVPlayerMainWidget(QWidget *parent) :
     ui->lineEdit_height->setPlaceholderText(QStringLiteral("height"));
     ui->lineEdit_width->setReadOnly(true);
     ui->lineEdit_height->setReadOnly(true);
+    ui->checkBox_play_sync->setChecked(true);
 
     setFixedWidth(size().width());
     setFixedHeight(size().height());
@@ -39,6 +40,8 @@ YUVPlayerMainWidget::YUVPlayerMainWidget(QWidget *parent) :
 
     //connect(&play_timer, SIGNAL(timeout()), this, SLOT(OnNextFrame()));
     connect(&this->play_timer, SIGNAL(timeout()), this, SLOT(onPlayTimer()));
+
+    connect(ui->horizontalSlider_framepos, SIGNAL(sliderReleased()), this, SLOT(onSeekFrame()));
 
     m_udpateStage = 0;
     //ui->lineEdit_width->editingFinished();
@@ -64,8 +67,6 @@ YUVPlayerMainWidget::YUVPlayerMainWidget(QWidget *parent) :
     m_pCmpDlg->setOrgRender(&m_render);
     m_pCmpDlg->hide();
     connect(m_pCmpDlg, SIGNAL(notifyMainUncheckedComporeCombox()), this, SLOT(unCheckedCompareBox()));
-
-
 
 
     //pushButton_filter
@@ -717,8 +718,7 @@ void YUVPlayerMainWidget::onStop()
     }
 }
 
-
-void YUVPlayerMainWidget::onPrevFrame()
+void YUVPlayerMainWidget::seekPrevFrame()
 {
     // TODO: Add your control notification handler code here
     int n;
@@ -748,15 +748,25 @@ void YUVPlayerMainWidget::onPrevFrame()
     // added. 2008/03/21
     if(m_yuvDoc.getFrameIndex() == 1 && m_playing <= 0)
         setState(STATE_VIDEOSTART);
+}
 
+void YUVPlayerMainWidget::onPrevFrame()
+{
+    seekPrevFrame();
     if(m_pCmpDlg->isReady())
     {
-        m_pCmpDlg->onPrevFrame();
+        if(isPlayingSyncChecked())
+        {
+            m_pCmpDlg->onPrevFrame();
+        }
+        else
+        {
+            m_pCmpDlg->updateDiffView();
+        }
     }
 }
 
-
-void YUVPlayerMainWidget::onNextFrame()
+void YUVPlayerMainWidget::seekNextFrame()
 {
     // TODO: Add your control notification handler code here
     int seek_flag = 1;
@@ -786,65 +796,29 @@ void YUVPlayerMainWidget::onNextFrame()
     // added. 此处不用考虑是否在播放中,前面已经检查过了
     if(m_yuvDoc.getFrameIndex() == m_yuvDoc.getFrameNum() && !m_bLoop)
         imageEnd(0);
+}
 
+bool YUVPlayerMainWidget::isPlayingSyncChecked()
+{
+    return ui->checkBox_play_sync->isChecked();
+}
+
+void YUVPlayerMainWidget::onNextFrame()
+{
+    seekNextFrame();
     if(m_pCmpDlg->isReady())
     {
-        m_pCmpDlg->onNextFrame();
+        if(isPlayingSyncChecked())
+        {
+            m_pCmpDlg->onNextFrame();
+        }
+        else
+        {
+            m_pCmpDlg->updateDiffView();
+        }
     }
 }
-#if 0
-void YUVPlayerMainWidget::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar)
-{
-    // TODO: Add your message handler code here and/or call default
-    CDialog::OnHScroll(nSBCode, nPos, pScrollBar);
 
-    static int flag = 0;
-    int n;
-    int nNow;
-    CSliderCtrl *pCS;
-
-    if(m_bReady == 0)
-        goto leave;
-
-
-    if(flag != 0){
-        flag=  0;
-        goto leave;
-    }
-
-    flag++;
-    pCS = (CSliderCtrl*) GetDlgItem(IDC_SLIDER_PLAY);
-    n = pCS->GetPos();
-    nNow = m_yuvDoc.getFrameIndex();
-    if(n == nNow)
-        goto leave;
-
-    if(n > nNow){
-        if(nNow == 1)
-            setState(STATE_VIDEOMID);
-
-
-        n--;
-        m_yuvDoc.seekFrame(n,SEEK_SET);
-        if(m_bCompare)
-            ::PostMessage(m_pCmpDlg->m_hWnd,WM_COMPARE,CMP_SEEK,n);
-        OnNextFrame();
-    }
-    else{
-        if(nNow == m_yuvDoc.getFrameNum())
-            setState(STATE_VIDEOMID);
-
-        n++;
-        m_yuvDoc.seekFrame(n,SEEK_SET);
-        if(m_bCompare)
-            ::PostMessage(m_pCmpDlg->m_hWnd,WM_COMPARE,CMP_SEEK,n);
-        OnPrevFrame();
-    }
-
-leave:
-    ;
-}
-#endif
 
 int YUVPlayerMainWidget::startPlay()
 {
@@ -938,9 +912,15 @@ void YUVPlayerMainWidget::onPlayTimer()
         autonextFrame_timer();
         if(m_pCmpDlg->isReady())
         {
-            m_pCmpDlg->onNextFrame();
+            if(isPlayingSyncChecked())
+            {
+                m_pCmpDlg->onNextFrame();
+            }
+            else
+            {
+                m_pCmpDlg->updateDiffView();
+            }
         }
-
     }
 }
 
@@ -1004,6 +984,54 @@ void YUVPlayerMainWidget::onFilterApply()
     //m_pCmpDlg->applyNewConfigure();
     m_pCmpDlg->updateDiffView();
 
+}
+
+void YUVPlayerMainWidget::onSeekFrame()
+{
+    if(m_playing == 1)
+    {
+        return;
+    }
+  int pos = ui->horizontalSlider_framepos->value();
+  QString str = QString("%1").arg(pos);
+  //lineEdit->setText(str);
+  int n;
+  int nNow;
+  if(m_bReady == 0)
+      goto leave;
+
+  n = pos;
+  nNow = m_yuvDoc.getFrameIndex();
+  if(n == nNow)
+      goto leave;
+
+  if(n > nNow){
+      if(nNow == 1)
+          setState(STATE_VIDEOMID);
+
+      n--;
+      m_yuvDoc.seekFrame(n,SEEK_SET);
+      seekNextFrame();
+      if(m_pCmpDlg->isReady())
+      {
+          m_pCmpDlg->updateDiffView();
+      }
+  }
+  else{
+      if(nNow == m_yuvDoc.getFrameNum())
+          setState(STATE_VIDEOMID);
+
+      n++;
+      m_yuvDoc.seekFrame(n,SEEK_SET);
+      seekPrevFrame();
+      if(m_pCmpDlg->isReady())
+      {
+          m_pCmpDlg->updateDiffView();
+      }
+  }
+
+leave:
+  ;
 }
 
 int YUVPlayerMainWidget::displayFrame()
@@ -1074,7 +1102,7 @@ void YUVPlayerMainWidget::notifyView(int id){
 
 void YUVPlayerMainWidget::openfile()
 {
-    QString fileName = QFileDialog::getOpenFileName(this, tr("Open YUV file."), ".", tr("YUV Files(*.yuv)"));
+    QString fileName = QFileDialog::getOpenFileName(this, tr("Open YUV file."), ".", tr("Data Files(*.yuv *.rgb)"));
     if(!fileName.isEmpty())
     {
         openFile_inner(fileName, 1, 0);

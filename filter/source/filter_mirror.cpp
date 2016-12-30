@@ -64,6 +64,7 @@ CFilter_Mirror::~CFilter_Mirror(){
 const char * CFilter_Mirror::getName(){
 	return IMAGE_FILTER_NAME;
 }
+
 // other information
 int  CFilter_Mirror::getModuleInfo(Module_Info *pInfo){
 	sprintf(pInfo->author_name,MODULE_AUTHOR);

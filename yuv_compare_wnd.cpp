@@ -26,6 +26,7 @@ CmpDlg::CmpDlg(QWidget *parent) :
     connect(ui->comboBox_compareComponent, SIGNAL(currentTextChanged(QString)), this, SLOT(onCompareComponentChanged(QString)));
     connect(ui->comboBox_compareType, SIGNAL(currentTextChanged(QString)), this, SLOT(onCompareModeChanged(QString)));
     connect(ui->lineEdit_threshold, SIGNAL(textChanged(QString)), this, SLOT(onCompareModeChanged(QString)));
+    connect(ui->horizontalSlider_framepos, SIGNAL(sliderReleased()), this, SLOT(onSeekFrame()));
 
     //connect(&play_timer, SIGNAL(timeout()), this, SLOT(OnNextFrame()));
 
@@ -117,9 +118,6 @@ int CmpDlg::updateConf1(int level)
     //    return 0;
 
     m_bReady = 0;
-
-
-
 
     {
         // yuv format
@@ -228,7 +226,6 @@ int CmpDlg::updateConf2(int level)
 
     int ret;
     m_gridColor = QString("Red");
-    //ret = m_imageWnd.setGridColor(m_gridColor);
     ret = m_imageWnd->enableGrid(m_bGridOn,m_gridXNum,m_gridYNum);
     ret = m_diffWnd->enableGrid(m_bGridOn,m_gridXNum,m_gridYNum);
     //if(ret < 0)
@@ -331,7 +328,6 @@ int CmpDlg::getThreshold()
     val1 = ui->lineEdit_threshold->text().toInt();
     return val1;
 }
-
 
 int CmpDlg::getCompareType()
 {
@@ -496,6 +492,46 @@ void CmpDlg::onNextFrame()
 
 }
 
+void CmpDlg::onSeekFrame()
+{
+    if(m_playing == 1)
+    {
+        return;
+    }
+  int pos = ui->horizontalSlider_framepos->value();
+  QString str = QString("%1").arg(pos);
+  //lineEdit->setText(str);
+  int n;
+  int nNow;
+  if(m_bReady == 0)
+      goto leave;
+
+  n = pos;
+  nNow = m_yuvDoc.getFrameIndex();
+  if(n == nNow)
+      goto leave;
+
+  if(n > nNow){
+      if(nNow == 1)
+          setState(STATE_VIDEOMID);
+
+      n--;
+      m_yuvDoc.seekFrame(n,SEEK_SET);
+      onNextFrame();
+  }
+  else{
+      if(nNow == m_yuvDoc.getFrameNum())
+          setState(STATE_VIDEOMID);
+
+      n++;
+      m_yuvDoc.seekFrame(n,SEEK_SET);
+      onPrevFrame();
+  }
+
+leave:
+  ;
+}
+
 int CmpDlg::startPlay()
 {
     if(m_bReady == 0)
@@ -577,22 +613,6 @@ void CmpDlg::autonextFrame_timer()
 
 }
 
-/*
-void CmpDlg::OnApply()
-{
-    // TODO: Add your control notification handler code here
-    if(m_playing == 1)		// is playing
-        return;
-
-    int ret;
-    ret = updateConf1();
-    if(ret >= 0)
-        ret = updateConf2();
-
-    if(ret > 0 && m_fileName.isEmpty() == 0)
-        ret = updateFinal();
-}
-*/
 
 void CmpDlg::setOrgRender(CRender *pOrg)
 {
@@ -615,20 +635,13 @@ int  CmpDlg::updateDiff(){
     p1 = m_imageRender.getRaw(&len1);
     p2 = m_orgRender->getRaw(&len2);
 
-
     m_diffRender.getBuffer(&p3, &bufsz);
-    if(m_cmpMode == 0){
-        if(m_cmpComp == 0)
-            n = m_diffRender.yuvDiff_bi_all(&m_imageRender, p1, p2, m_threshold);
-        else
-            n = m_diffRender.yuvDiff_bi_comp(&m_imageRender, p1, p2, m_threshold, m_cmpComp-1);
-    }
-    else{
-        if(m_cmpComp == 0)
-            n = m_diffRender.yuvDiff_diff_all(&m_imageRender, p1, p2);
-        else
-            n = m_diffRender.yuvDiff_diff_comp(&m_imageRender, p1, p2, m_cmpComp-1);
-    }
+
+    if(m_cmpComp == 0)
+        n = m_diffRender.yuvDiff_bi_all(&m_imageRender, p1, p2, m_threshold, (m_cmpMode != 0));
+    else
+        n = m_diffRender.yuvDiff_bi_comp(&m_imageRender, p1, p2, m_threshold, (m_cmpMode != 0), m_cmpComp-1);
+
     m_diffRender.putData(p3);
 
     /*
@@ -664,7 +677,6 @@ int CmpDlg::displayFrame()
 
     int framePos,frameNum;
 
-    // 帧数目信息
     framePos = m_yuvDoc.getFrameIndex();
     frameNum = m_yuvDoc.getFrameNum();
     if(framePos < 0 || frameNum <= 0)
@@ -723,9 +735,6 @@ int CmpDlg::displayFrame()
 }
 
 void CmpDlg::notifyView(int id){
-    //::PostMessage(m_imageWnd.m_hWnd,WM_VIEW,m_notifyId,0);
-    //emit single.
-
     emit notifyShowYUVView();
     emit notifyShowYUVDiffView();
 
@@ -734,55 +743,9 @@ void CmpDlg::notifyView(int id){
     }
 }
 
-
-#if 0
-
-int CYuvplayDlg::updateFinal(){
-    int ret;
-
-    if(m_fileName.IsEmpty())
-        return 0;
-
-    CString errMsg;
-
-    m_yuvDoc.setFileName(m_fileName);
-    ret = m_yuvDoc.update();  	// -1: 失败,0:无变化,1:更新
-    if( ret  < 0){
-        setState(STATE_NOVIDEO);		// 无图像
-        errMsg = m_yuvDoc.getErrMsg();
-        goto leave;
-    }
-    else if(ret == 0){  // 无变化,或无数据
-        return 0;
-    }
-    else{		// 有变化,文件已经重启,可显示
-        int n;
-        m_bReady = 1;
-        n = displayFrame();
-        if( n >= 0){
-            if(n > 0)
-                setState(STATE_VIDEOSTART);
-            m_imageWnd.setTitle(m_fileName);
-            m_imageWnd.ShowWindow(SW_SHOW);
-        }
-    }
-
-
-    // added. 2008/03/21
-    if(m_yuvDoc.getFrameNum() == 1)
-        setState(STATE_ONEFRAME);
-
-    return 1;
-
-leave:
-    if(errMsg.IsEmpty() == 0)
-        MessageBox(errMsg);
-    return ret;
-}
-#endif
 void CmpDlg::openfile()
 {
-    QString fileName = QFileDialog::getOpenFileName(this, tr("Open YUV file."), ".", tr("YUV Files(*.yuv)"));
+    QString fileName = QFileDialog::getOpenFileName(this, tr("Open YUV file."), ".", tr("YUV Files(*.yuv *.rgb)"));
     if(!fileName.isEmpty())
     {
         openFile_inner(fileName, 1, 0);
@@ -834,15 +797,7 @@ leave:
 int  CmpDlg::closeFile(){
     setState(STATE_NOVIDEO);
 
-    //
-    //m_imageWnd.clear();
-
     m_yuvDoc.destroy();
-
-    //CSliderCtrl *pCS = (CSliderCtrl*) GetDlgItem(IDC_SLIDER_PLAY);
-    //pCS->SetRange(0,0,1);
-
-    //SetDlgItemText(IDC_STATIC_FRAMENUM,"0/0");
 
     return 1;
 }

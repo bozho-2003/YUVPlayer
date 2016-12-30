@@ -75,10 +75,27 @@ int CRender::_calcFrameSize(RawImage_Info *pInfo){
         pInfo->frame_size = pInfo->width*pInfo->height*3;
 
         // pixel info
-        m_linePitch = pInfo->width;
+        m_linePitch[0] = pInfo->width;
+        m_linePitch[1] = pInfo->width;
+        m_linePitch[2] = pInfo->width;
         m_offs[0] = 0;
         m_offs[1] = pInfo->frame_size/3;
         m_offs[2] = pInfo->frame_size/3*2;
+        m_step = 1;
+
+        m_pixelFormat = 0;
+        return 1;
+    }
+    else if(pInfo->raw_format == RAW_FORMAT_YUV420){
+        pInfo->frame_size = pInfo->width*pInfo->height*3/2;
+
+        // pixel info
+        m_linePitch[0] = pInfo->width;
+        m_linePitch[1] = pInfo->width / 2;
+        m_linePitch[2] = pInfo->width / 2;
+        m_offs[0] = 0;
+        m_offs[1] = pInfo->width*pInfo->height;
+        m_offs[2] = pInfo->width*pInfo->height * 5 / 4;
         m_step = 1;
 
         m_pixelFormat = 0;
@@ -88,7 +105,9 @@ int CRender::_calcFrameSize(RawImage_Info *pInfo){
         pInfo->frame_size = pInfo->width*pInfo->height*3;
 
         // pixel info
-        m_linePitch = pInfo->width*3;
+        m_linePitch[0] = pInfo->width*3;
+        m_linePitch[1] = pInfo->width*3;
+        m_linePitch[2] = pInfo->width*3;
         m_offs[0] = 0;
         m_offs[1] = 1;
         m_offs[2] = 2;
@@ -103,7 +122,9 @@ int CRender::_calcFrameSize(RawImage_Info *pInfo){
         pInfo->frame_size = tmp*pInfo->height;
 
         // pixel info
-        m_linePitch = tmp;
+        m_linePitch[0] = tmp;
+        m_linePitch[1] = tmp;
+        m_linePitch[2] = tmp;
         m_offs[0] = 2;
         m_offs[1] = 1;
         m_offs[2] = 0;
@@ -115,7 +136,9 @@ int CRender::_calcFrameSize(RawImage_Info *pInfo){
     else if(pInfo->raw_format == RAW_FORMAT_GREY8){
         pInfo->frame_size = pInfo->width*pInfo->height;
 
-        m_linePitch = pInfo->width;
+        m_linePitch[0] = pInfo->width;
+        m_linePitch[1] = -1;
+        m_linePitch[2] = -1;
         m_offs[0] = 0;
         m_offs[1] = -1;
         m_offs[2] = -1;
@@ -264,11 +287,21 @@ int CRender::putData(unsigned char *pBuf){
         if(m_showYUV == YUV_SHOW_YUV)
             yuv444_2_rgb24(m_rawBuf, m_imageBuf, m_rawInfo.width, m_rawInfo.height);
         else if(m_showYUV == YUV_SHOW_Y)
-            grey8_2_rgb24(m_rawBuf, m_imageBuf, m_rawInfo.width, m_rawInfo.height);
+            grey8_2_rgb24(m_rawBuf + m_offs[0], m_imageBuf, m_rawInfo.width, m_rawInfo.height);
         else if(m_showYUV == YUV_SHOW_U)
-            grey8_2_rgb24(m_rawBuf + m_frameSize/3, m_imageBuf, m_rawInfo.width, m_rawInfo.height);
+            grey8_2_rgb24(m_rawBuf + m_offs[1], m_imageBuf, m_rawInfo.width, m_rawInfo.height);
         else if(m_showYUV == YUV_SHOW_V)
-            grey8_2_rgb24(m_rawBuf + m_frameSize/3*2, m_imageBuf, m_rawInfo.width, m_rawInfo.height);
+            grey8_2_rgb24(m_rawBuf + m_offs[2], m_imageBuf, m_rawInfo.width, m_rawInfo.height);
+    }
+    else if(m_rawInfo.raw_format == RAW_FORMAT_YUV420){
+        if(m_showYUV == YUV_SHOW_YUV)
+            yuv420_2_rgb24(m_rawBuf, m_imageBuf, m_rawInfo.width, m_rawInfo.height);
+        else if(m_showYUV == YUV_SHOW_Y)
+            grey8_2_rgb24(m_rawBuf + m_offs[0], m_imageBuf, m_rawInfo.width, m_rawInfo.height);
+        else if(m_showYUV == YUV_SHOW_U)
+            grey8_2_rgb24(m_rawBuf + m_offs[1], m_imageBuf, m_rawInfo.width, m_rawInfo.height);
+        else if(m_showYUV == YUV_SHOW_V)
+            grey8_2_rgb24(m_rawBuf + m_offs[2], m_imageBuf, m_rawInfo.width, m_rawInfo.height);
     }
     else if(m_rawInfo.raw_format == RAW_FORMAT_BGR24){
         bgr24_2_rgb24(m_rawBuf, m_imageBuf, m_rawInfo.width, m_rawInfo.height);
@@ -316,12 +349,12 @@ const unsigned char* CRender::getRaw(int *pLen){
     return m_rawBuf;
 }
 
-
 int CRender::getBitCount_C(int arg){
     if(m_bValid == 0)
         return -3;
     return 8;
 }
+
 int CRender::getPixels_Y(int x, int y, int cx, unsigned char *buf, int bufsz){
     if(m_bValid == 0)
         return -3;
@@ -338,7 +371,7 @@ int CRender::getPixels_Y(int x, int y, int cx, unsigned char *buf, int bufsz){
         return -1;
 
     unsigned char *p = m_rawBuf;
-    p += m_offs[0] + y*m_linePitch + x*m_step;
+    p += m_offs[0] + y*m_linePitch[0] + x*m_step;
 
     for(int i = 0;i < cx;i++){
         buf[i] = *p;
@@ -347,6 +380,62 @@ int CRender::getPixels_Y(int x, int y, int cx, unsigned char *buf, int bufsz){
 
     return cx;
 }
+
+QString CRender::getPixels_YUV_str(int x, int y, int nLine, int numPixels, int yuv_flag, int valueMode)
+{
+    unsigned char  buf[1024];
+    int i;
+    int x_start, y_start;
+    QString text, buf2;
+    x_start = x;
+    y_start = y;
+
+    if((yuv_flag != 0) && (m_rawInfo.raw_format == RAW_FORMAT_YUV420))
+    {
+        x_start = x / 2;
+        y_start = y / 2;
+        nLine = nLine / 2;
+        numPixels = numPixels / 2;
+    }
+
+    for(i = 0;i < nLine;i++){
+        int nBytes;
+        const  unsigned char *p1;
+
+        // return actual size
+        if (yuv_flag == 0)
+        {
+            nBytes = getPixels_Y(x_start,y_start+i,numPixels,(unsigned char*)buf,numPixels);
+        }
+        else if (yuv_flag == 1)
+        {
+            nBytes = getPixels_U(x_start,y_start+i,numPixels,(unsigned char*)buf,numPixels);
+        }
+        else if (yuv_flag == 2)
+        {
+            nBytes = getPixels_V(x_start,y_start+i,numPixels,(unsigned char*)buf,numPixels);
+        }
+
+        if(nBytes <= 0)
+            break;
+
+        p1 = buf;
+        while(nBytes-- > 0){
+            if(valueMode == VALUE_MODE_DEC){
+                buf2 = QString().sprintf("%.3d ",*(const unsigned char*)p1);
+            }
+            else{
+                buf2 = QString().sprintf("%.2X ",*(const unsigned char*)p1);
+            }
+
+            text += buf2;
+            p1++;
+        }
+        text += "\r\n";
+    }
+    return text;
+}
+
 int CRender::getPixels_U(int x, int y, int cx, unsigned char *buf, int bufsz){
     if(m_bValid == 0)
         return -3;
@@ -363,7 +452,8 @@ int CRender::getPixels_U(int x, int y, int cx, unsigned char *buf, int bufsz){
         return -1;
 
     unsigned char *p = m_rawBuf;
-    p += m_offs[1] + y*m_linePitch + x*m_step;
+
+    p += m_offs[1] + y*m_linePitch[1] + x*m_step;
 
     for(int i = 0;i < cx;i++){
         buf[i] = *p;
@@ -388,75 +478,13 @@ int CRender::getPixels_V(int x, int y, int cx, unsigned char *buf, int bufsz){
         return -1;
 
     unsigned char *p = m_rawBuf;
-    p += m_offs[2] + y*m_linePitch + x*m_step;
+    p += m_offs[2] + y*m_linePitch[2] + x*m_step;
 
     for(int i = 0;i < cx;i++){
         buf[i] = *p;
         p += m_step;
     }
-
     return cx;
-}
-
-int CRender::getPixels_3x3(int x, int y, unsigned char *y_buf, unsigned char* u_buf, unsigned char *v_buf){
-    if(m_bValid == 0)
-        return -3;
-
-    if(x < 0 || y < 0 || y_buf == NULL || u_buf == NULL || v_buf == NULL)
-        return -1;
-
-    if(x <1 || y < 1 ||x >= m_rawInfo.width - 1 || y >= m_rawInfo.height -1){
-        memset(y_buf, 0, 9);
-        memset(u_buf, 0, 9);
-        memset(v_buf, 0, 9);
-        return m_pixelFormat;
-    }
-
-    int offset = (y-1)*m_linePitch + (x-1)*m_step;
-    int line_pitch = m_linePitch - m_step*3;
-    if(m_offs[0] >= 0 && 1){
-        unsigned char *p = m_rawBuf + offset + m_offs[0];
-        for(int i=0;i < 9;i++){
-            y_buf[i] = p[0];
-            p += m_step;
-            if(i == 2 || i == 5){
-                p += m_linePitch;
-            }
-        }
-    }
-    else{
-        memset(y_buf, 0, 9);
-    }
-
-    if(m_offs[1] >= 0 && 1){
-        unsigned char *p = m_rawBuf + offset + m_offs[1];
-        for(int i=0;i < 9;i++){
-            u_buf[i] = p[0];
-            p += m_step;
-            if(i == 2 || i == 5){
-                p += m_linePitch;
-            }
-        }
-    }
-    else{
-        memset(u_buf, 0, 9);
-    }
-
-    if(m_offs[2] >= 0 && 1){
-        unsigned char *p = m_rawBuf + offset + m_offs[2];
-        for(int i=0;i < 9;i++){
-            v_buf[i] = p[0];
-            p += m_step;
-            if(i == 2 || i == 5){
-                p += m_linePitch;
-            }
-        }
-    }
-    else{
-        memset(v_buf, 0, 9);
-    }
-
-    return m_pixelFormat;
 }
 
 int CRender::destroy(){
@@ -469,7 +497,42 @@ int CRender::destroy(){
     return 0;
 }
 
+int CRender::yuv420_2_rgb24(unsigned char *yuv_buf, unsigned char *bgr_buf, int width, int height){
+    int i,j;
+    int linePitch_bgr;
+    unsigned char *pY,*pU,*pV;
+    unsigned char *pB;
 
+    i = width*height;
+    pY = yuv_buf;
+    pU = pY + i;
+    pV = pU + i / 4;
+
+    i = width*3;
+    linePitch_bgr = i;
+    while(linePitch_bgr&3) linePitch_bgr++;
+    pB = bgr_buf;
+    //pB += linePitch_bgr*(height-1);
+    //linePitch_bgr += i;
+
+    for(i = 0; i < height; i++)
+    {
+        for(j = 0;j < width;j++)
+        {
+            unsigned char r_val, g_val, b_val;
+            yuv2rgb(*(pY+j), *(pU+(j>>1)), *(pV+(j>>1)), &r_val, &g_val, &b_val);
+
+            *(pB + 3 * j) = r_val;
+            *(pB + 3 * j + 1) = g_val;
+            *(pB + 3 * j + 2) = b_val;
+        }
+        pY += width;
+        pU += (width / 2) * (i & 1);
+        pV += (width / 2) * (i & 1);
+        pB += linePitch_bgr;
+    }
+    return 1;
+}
 
 int CRender::yuv444_2_rgb24(unsigned char *yuv_buf, unsigned char *bgr_buf, int width, int height){
     int i,j;
@@ -574,96 +637,28 @@ const QString CRender::getErrMsg(){
     return m_errMsg;
 }
 
-
-int CRender::yuvDiff_diff_all(CRender *pref, const unsigned char *pSrc1, const unsigned char *pSrc2){
-    int diff_num = 0;
-    unsigned char *p4 = m_rawBuf;
-    RawImage_Info info;
-
-    pref->getRawInfo(&info);
-
-    if(info.raw_format != RAW_FORMAT_GREY8){
-        const unsigned char *p1[3],*p2[3];
-        int line_extra;
-        int i,j;
-
-        if(info.raw_format == RAW_FORMAT_BGR24){
-            i = info.width*3;
-            line_extra = i;
-            while(line_extra&0x3) line_extra++;
-            line_extra -= i;
-        }
-        else
-            line_extra = 0;
-
-        for(i = 0;i < 3;i++){
-            p1[i] = pSrc1 + pref->m_offs[i];
-            p2[i] = pSrc2 + pref->m_offs[i];
-        }
-
-        for(i = 0;i < info.height;i++){
-            for(j = 0;j < info.width;j++){
-                int diff_val = 0;
-                int k;
-                for(k = 0;k < 3;k++){
-                    register int tmp;
-                    tmp = *p1[k] - *p2[k];
-                    if(tmp < 0) tmp = -tmp;
-                    diff_val += tmp;
-                }
-
-                // meanning is changed
-                if(diff_val > 255) diff_val = 255;
-
-                // r
-                *p4++ = diff_val;
-
-                diff_num += (diff_val>0);
-
-                for(k = 0;k < 3;k++){
-                    p1[k] += pref->m_step;
-                    p2[k] += pref->m_step;
-                }
-            }
-
-            if(line_extra > 0){
-                for(int k = 0;k < 3;k++){
-                    p1[k] += line_extra;
-                    p2[k] += line_extra;
-                }
-            }
-
-        }
-    }
-    else{  // gray8
-        const unsigned char *p1,*p2;
-        unsigned char *p3;
-        int num = info.width*info.height;
-        int i;
-        int width = info.width;
-
-        p1 = pSrc1;
-        p2 = pSrc2;
-        i = 0;
-        while(i++ < num){
-            int diff_val;
-            diff_val = *p1 - *p2;
-            if(diff_val < 0) diff_val = -diff_val;
-            if(diff_val > 255) diff_val = 255;
-
-            *p4++ = diff_val;
-
-            diff_num += (diff_val>0);
-
-            p1++;
-            p2++;
-        }
-    }
-
-    return diff_num;
+#define CAL_KERNEL(threshold, tmp)\
+if (compare_type == 0)\
+{\
+    tmp -= threshold;\
+    if(tmp < 0) tmp = 0;\
 }
 
-int CRender::yuvDiff_bi_all(CRender *pref, const unsigned char *pSrc1, const unsigned char *pSrc2, int threshold){
+
+#define CAL_OUTER(p4, diff_val)\
+if (compare_type == 0)\
+{\
+    if(diff_val > 0) diff_val = 1;\
+    *p4++ = 0x100 - diff_val;\
+}\
+else\
+{\
+    if(diff_val > 255) diff_val = 255;\
+    *p4++ = diff_val;\
+}
+
+int CRender::yuvDiff_bi_all(CRender *pref, const unsigned char *pSrc1, const unsigned char *pSrc2, int threshold, int compare_type)
+{
     int diff_num = 0;
     unsigned char *p4 = m_rawBuf;
     RawImage_Info info;
@@ -676,7 +671,7 @@ int CRender::yuvDiff_bi_all(CRender *pref, const unsigned char *pSrc1, const uns
         int i,j;
 
         if(info.raw_format == RAW_FORMAT_BGR24){
-            i = info.width*3;
+            i = info.width * 3;
             line_extra = i;
             while(line_extra&0x3) line_extra++;
             line_extra -= i;
@@ -684,45 +679,79 @@ int CRender::yuvDiff_bi_all(CRender *pref, const unsigned char *pSrc1, const uns
         else
             line_extra = 0;
 
-        for(i = 0;i < 3;i++){
+        for(i = 0;i < 3;i++)
+        {
             p1[i] = pSrc1 + pref->m_offs[i];
             p2[i] = pSrc2 + pref->m_offs[i];
         }
 
-        for(i = 0;i < info.height;i++){
-            for(j = 0;j < info.width;j++){
-                int diff_val = 0;
-                int k;
-                for(k = 0;k < 3;k++){
+        if(info.raw_format == RAW_FORMAT_YUV420)
+        {
+            for(i = 0;i < info.height;i++)
+            {
+                for(j = 0;j < info.width;j++)
+                {
+                    int diff_val = 0;
+                    int k;
                     register int tmp;
-                    tmp = *p1[k] - *p2[k];
-                    if(tmp < 0) tmp = -tmp;
-                    tmp -= threshold;
-                    if(tmp < 0) tmp = 0;
+                    tmp = abs(p1[0][j] - p2[0][j]);
+                    CAL_KERNEL(threshold, tmp);
                     diff_val += tmp;
+
+                    tmp = abs(p1[1][j>>1] - p2[1][j>>1]);
+                    CAL_KERNEL(threshold, tmp);
+                    diff_val += tmp;
+
+                    tmp = abs(p1[2][j>>1] - p2[2][j>>1]);
+                    CAL_KERNEL(threshold, tmp);
+                    diff_val += tmp;
+
+                    CAL_OUTER(p4, diff_val);
+
+                    diff_num += diff_val;
                 }
 
-                // meanning is changed
-                if(diff_val > 0) diff_val = 1;
+                p1[0] += info.width;
+                p2[0] += info.width;
 
-                // r
-                *p4++ = 0x100 - diff_val;
+                p1[1] += (info.width >> 1) * (i & 1);
+                p2[1] += (info.width >> 1) * (i & 1);
 
-                diff_num += diff_val;
+                p1[2] += (info.width >> 1) * (i & 1);
+                p2[2] += (info.width >> 1) * (i & 1);
 
-                for(k = 0;k < 3;k++){
-                    p1[k] += pref->m_step;
-                    p2[k] += pref->m_step;
+            }
+        }
+        else if(info.raw_format == RAW_FORMAT_YUV444)
+        {
+            for(i = 0;i < info.height;i++){
+                for(j = 0;j < info.width;j++){
+                    int diff_val = 0;
+                    int k;
+                    for(k = 0;k < 3;k++){
+                        register int tmp;
+                        tmp = abs(*p1[k] - *p2[k]);
+                        CAL_KERNEL(threshold, tmp);
+                        diff_val += tmp;
+                    }
+
+                    CAL_OUTER(p4, diff_val);
+
+                    diff_num += diff_val;
+
+                    for(k = 0;k < 3;k++){
+                        p1[k] += pref->m_step;
+                        p2[k] += pref->m_step;
+                    }
+                }
+
+                if(line_extra > 0){
+                    for(int k = 0;k < 3;k++){
+                        p1[k] += line_extra;
+                        p2[k] += line_extra;
+                    }
                 }
             }
-
-            if(line_extra > 0){
-                for(int k = 0;k < 3;k++){
-                    p1[k] += line_extra;
-                    p2[k] += line_extra;
-                }
-            }
-
         }
     }
     else{  // gray8
@@ -735,15 +764,13 @@ int CRender::yuvDiff_bi_all(CRender *pref, const unsigned char *pSrc1, const uns
         p1 = pSrc1;
         p2 = pSrc2;
         i = 0;
-        while(i++ < num){
+        while(i++ < num)
+        {
             int diff_val;
-            diff_val = *p1 - *p2;
-            if(diff_val < 0) diff_val = -diff_val;
-            diff_val -= threshold;
-            if(diff_val <= 0) diff_val = 0;
-            else diff_val = 1;
+            diff_val = abs(*p1 - *p2);
 
-            *p4++ = 0x100 - diff_val;
+            CAL_KERNEL(threshold, diff_val);
+            CAL_OUTER(p4, diff_val);
 
             diff_num += diff_val;
 
@@ -755,95 +782,8 @@ int CRender::yuvDiff_bi_all(CRender *pref, const unsigned char *pSrc1, const uns
     return diff_num;
 }
 
-int CRender::yuvDiff_diff_comp(CRender *pref, const unsigned char *pSrc1, const unsigned char *pSrc2, int comp_id){
-    int diff_num = 0;
-    unsigned char *p4 = m_rawBuf;
-    int index = comp_id;
-
-    if(index > 2)
-        return -1;
-
-    RawImage_Info info;
-
-    pref->getRawInfo(&info);
-
-
-    if(info.raw_format != RAW_FORMAT_GREY8){
-        const unsigned char *p1[3],*p2[3];
-        int line_extra;
-        int i,j;
-
-        if(info.raw_format == RAW_FORMAT_BGR24){
-            i = info.width*3;
-            line_extra = i;
-            while(line_extra&0x3) line_extra++;
-            line_extra -= i;
-        }
-        else
-            line_extra = 0;
-
-        p1[index] = pSrc1 + pref->m_offs[index];
-        p2[index] = pSrc2 + pref->m_offs[index];
-
-
-        for(i = 0;i < info.height;i++){
-            for(j = 0;j < info.width;j++){
-                int diff_val = 0;
-                register int tmp;
-
-                tmp = *p1[index] - *p2[index];
-                if(tmp < 0) tmp = -tmp;
-                diff_val += tmp;
-
-                // meanning is changed
-                if(diff_val > 255) diff_val = 255;
-
-                // r
-                *p4++ = diff_val;
-
-                diff_num += (diff_val>0);
-
-                p1[index] += pref->m_step;
-                p2[index] += pref->m_step;
-
-            }
-
-            if(line_extra > 0){
-                p1[index] += line_extra;
-                p2[index] += line_extra;
-            }
-
-        }
-    }
-    else{  // gray8
-        const unsigned char *p1,*p2;
-        unsigned char *p3;
-        int num = info.width*info.height;
-        int i;
-        int width = info.width;
-
-        p1 = pSrc1;
-        p2 = pSrc2;
-        i = 0;
-        while(i++ < num){
-            int diff_val;
-            diff_val = *p1 - *p2;
-            if(diff_val < 0) diff_val = -diff_val;
-            if(diff_val > 255) diff_val = 255;
-
-            *p4++ = diff_val;
-
-            diff_num += (diff_val>0);
-
-            p1++;
-            p2++;
-        }
-    }
-
-    return diff_num;
-}
-
-int CRender::yuvDiff_bi_comp(CRender *pref, const unsigned char *pSrc1, const unsigned char *pSrc2, int threshold, int comp_id){
+int CRender::yuvDiff_bi_comp(CRender *pref, const unsigned char *pSrc1, const unsigned char *pSrc2, int threshold, int compare_type, int comp_id)
+{
     int diff_num = 0;
     unsigned char *p4 = m_rawBuf;
     int index = comp_id;
@@ -867,36 +807,79 @@ int CRender::yuvDiff_bi_comp(CRender *pref, const unsigned char *pSrc1, const un
         else
             line_extra = 0;
 
-        p1[index] = pSrc1 + pref->m_offs[index];
-        p2[index] = pSrc2 + pref->m_offs[index];
+        if(info.raw_format == RAW_FORMAT_YUV420)
+        {
+            p1[index] = pSrc1 + pref->m_offs[index];
+            p2[index] = pSrc2 + pref->m_offs[index];
 
-        for(i = 0;i < info.height;i++){
-            for(j = 0;j < info.width;j++){
-                int diff_val = 0;
-                register int tmp;
+            for(i = 0;i < info.height;i++){
+                for(j = 0;j < info.width;j++)
+                {
+                    int diff_val = 0;
+                    register int tmp;
 
-                tmp = *p1[index] - *p2[index];
-                if(tmp < 0) tmp = -tmp;
-                tmp -= threshold;
-                if(tmp < 0) tmp = 0;
-                diff_val += tmp;
+                    if(index == 0)
+                    {
+                        tmp = abs(p1[index][j] - p2[index][j]);
+                        CAL_KERNEL(threshold, tmp);
+                        diff_val += tmp;
+                    }
+                    else
+                    {
+                        tmp = abs(p1[index][j>>1] - p2[index][j>>1]);
+                        CAL_KERNEL(threshold, tmp);
+                        diff_val += tmp;
+                    }
 
+                    CAL_OUTER(p4, diff_val);
 
-                // meanning is changed
-                if(diff_val > 0) diff_val = 1;
+                    diff_num += diff_val;
+                }
 
-                // r
-                *p4++ = 0x100 - diff_val;
+                if(index == 0)
+                {
+                    p1[index] += info.width;
+                    p2[index] += info.width;
+                }
+                else
+                {
+                    p1[index] += (info.width >> 1) * (i & 1);
+                    p2[index] += (info.width >> 1) * (i & 1);
+                }
 
-                diff_num += diff_val;
+                if(line_extra > 0){
+                    p1[index] += line_extra;
+                    p2[index] += line_extra;
+                }
 
-                p1[index] += pref->m_step;
-                p2[index] += pref->m_step;
             }
+        }
+        else if(info.raw_format == RAW_FORMAT_YUV444)
+        {
+            p1[index] = pSrc1 + pref->m_offs[index];
+            p2[index] = pSrc2 + pref->m_offs[index];
 
-            if(line_extra > 0){
-                p1[index] += line_extra;
-                p2[index] += line_extra;
+            for(i = 0;i < info.height;i++){
+                for(j = 0;j < info.width;j++)
+                {
+                    int diff_val = 0;
+                    register int tmp;
+
+                    tmp = abs(p1[index][j] - p2[index][j]);
+                    CAL_KERNEL(threshold, tmp);
+                    diff_val += tmp;
+
+                    CAL_OUTER(p4, diff_val);
+                    diff_num += diff_val;
+                }
+                p1[index] += info.width;
+                p2[index] += info.width;
+
+                if(line_extra > 0){
+                    p1[index] += line_extra;
+                    p2[index] += line_extra;
+                }
+
             }
 
         }
@@ -913,13 +896,11 @@ int CRender::yuvDiff_bi_comp(CRender *pref, const unsigned char *pSrc1, const un
         i = 0;
         while(i++ < num){
             int diff_val;
-            diff_val = *p1 - *p2;
-            if(diff_val < 0) diff_val = -diff_val;
-            diff_val -= threshold;
-            if(diff_val <= 0) diff_val = 0;
-            else diff_val = 1;
+            diff_val = abs(*p1 - *p2);
 
-            *p4++ = 0x100 - diff_val;
+            CAL_KERNEL(threshold, diff_val);
+
+            CAL_OUTER(p4, diff_val);
 
             diff_num += diff_val;
 
@@ -930,7 +911,6 @@ int CRender::yuvDiff_bi_comp(CRender *pref, const unsigned char *pSrc1, const un
 
     return diff_num;
 }
-
 
 
 const char *getRawFormatName(int format){

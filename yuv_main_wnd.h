@@ -127,7 +127,7 @@ private slots:
     void onPrevFrame();
     void onNextFrame();
     void onPlayTimer();
-
+    void onSeekFrame();
 
     void onSizeChanged(QString itemName);
     void onShowFlagChanged(QString itemName);
@@ -136,8 +136,9 @@ private slots:
     void onCompare(int idx);
     void onFilter(int idx);
 
-
     void setBlockPos(int x, int y);
+    void seekNextFrame();
+    void seekPrevFrame();
 
 private:
     Ui::yuv_main_wnd *ui;
@@ -164,6 +165,7 @@ private:
     int imageEnd(int back);
     int displayFrame();
     void autonextFrame_timer();
+    bool isPlayingSyncChecked();
 
     void notifyView(int id = 0);
 
