@@ -1,57 +1,44 @@
 #include <QImage>
 #include "uti_xmlparse.h"
-#include "filter_test.h"
+#include "filter_conv.h"
 
-
-
-
-#define IMAGE_FILTER_NAME  "SimpleAdjust"
+#define IMAGE_FILTER_NAME  "ConvFilter"
 
 #define MODULE_VERSION    "0.0.1"
-#define MODULE_AUTHOR     "netjunegg@gmail.com"
-#define MODULE_COMMENT    "一个简单滤镜, 调节分量增益\r\n"  \
-    "不改变格式, 不改变分辨率"
+#define MODULE_AUTHOR     "bozho.2003@gmail.com"
+#define MODULE_COMMENT    "A simple conv filter for image process, which don't change image format and resolution"
 
-const char *CFilter_Test::parameter_format =
-    "<filterinfo algname=\"mirror\" algtype=\"0\" onoff=\"1\" drawconfig =\"1\" drawresult =\"1\" vernum=\"0\">"
-    "  <!-- mirror -->"
+const char *CFilter_ConvFilter::parameter_format =
+    "<filterinfo algname=\"conv\" algtype=\"0\" onoff=\"1\" drawconfig =\"1\" drawresult =\"1\" vernum=\"0\">"
+    "  <!-- conv filter -->"
     "  <para>"
     "    <label index = \"1\">"
     "      <showname><![CDATA[base parameters]]></showname>"
-    "      <parainfo name=\"type\" type=\"int\">"
+    "      <parainfo name=\"k-w\" type=\"int\">"
     "        <min value = \"0\"/>"
-    "        <max value = \"1\"/>"
+    "        <max value = \"15\"/>"
     "        <val value = \"%d\"/>"
     "        <modflag value = \"1\"/>"
-    "        <visibility value = \"0\"/>"
-    "        <showname><![CDATA[type]]></showname>"
-    "        <comment><![CDATA[0,255]]]></comment>"
+    "        <visibility value = \"1\"/>"
+    "        <showname><![CDATA[kernel-width]]></showname>"
+    "        <comment><![CDATA[kennel width 0-15]]]></comment>"
     "      </parainfo>"
-    "      <parainfo name=\"y_gain\" type=\"float\">"
+    "      <parainfo name=\"k-h\" type=\"int\">"
+    "        <min value = \"0\"/>"
+    "        <max value = \"15\"/>"
+    "        <val value = \"%d\"/>"
+    "        <modflag value = \"1\"/>"
+    "        <visibility value = \"1\"/>"
+    "        <showname><![CDATA[kernel-height]]></showname>"
+    "        <comment><![CDATA[kernel hwight 0-15]]]></comment>"
+    "      </parainfo>"
+    "      <parainfo name=\"kernel\" type=\"str\">"
     "        <min value = \"0.0\"/>"
     "        <max value = \"255.0\"/>"
-    "        <val value = \"%f\"/>"
+    "        <val value = \"%s\"/>"
     "        <modflag value = \"1\"/>"
     "        <visibility value = \"0\"/>"
     "        <showname><![CDATA[y gain]]></showname>"
-    "        <comment><![CDATA[0,255]]]></comment>"
-    "      </parainfo>"
-    "      <parainfo name=\"u_gain\" type=\"float\">"
-    "        <min value = \"0.0\"/>"
-    "        <max value = \"255.0\"/>"
-    "        <val value = \"%f\"/>"
-    "        <modflag value = \"1\"/>"
-    "        <visibility value = \"0\"/>"
-    "        <showname><![CDATA[u gain]]></showname>"
-    "        <comment><![CDATA[0,255]]]></comment>"
-    "      </parainfo>"
-    "      <parainfo name=\"v_gain\" type=\"float\">"
-    "        <min value = \"0.0\"/>"
-    "        <max value = \"255.0\"/>"
-    "        <val value = \"%f\"/>"
-    "        <modflag value = \"1\"/>"
-    "        <visibility value = \"0\"/>"
-    "        <showname><![CDATA[v gain]]></showname>"
     "        <comment><![CDATA[0,255]]]></comment>"
     "      </parainfo>"
     "    </label>"
@@ -59,45 +46,33 @@ const char *CFilter_Test::parameter_format =
     "</filterinfo>";
 
 
-CFilter_Test::CFilter_Test(){
+CFilter_ConvFilter::CFilter_ConvFilter(){
 	m_frame_size = 0;
-	m_line_extra_bytes = 0;
-
-    m_type = 0;
-    m_gain1 = 1.0;
-    m_gain2 = 1.0;
-    m_gain3 = 1.0;
-	
-	m_testVal = 1010;
-	m_testVal2 = 1020;
-	m_testStr = NULL;
+    m_line_extra_bytes = 0;
 }
 
-CFilter_Test::~CFilter_Test(){
+CFilter_ConvFilter::~CFilter_ConvFilter(){
 	destroy();
 }
 
 // filter name
-const char * CFilter_Test::getName(){
+const char * CFilter_ConvFilter::getName(){
 	return IMAGE_FILTER_NAME;
 }
 
 // other information
-int  CFilter_Test::getModuleInfo(Module_Info *pInfo){
+int  CFilter_ConvFilter::getModuleInfo(Module_Info *pInfo){
 	sprintf(pInfo->author_name,MODULE_AUTHOR);
 	sprintf(pInfo->comment,MODULE_COMMENT);
 	sprintf(pInfo->version,MODULE_VERSION);
 	return E_OK;
 }
 
-int  CFilter_Test::simpleConfig(int val, unsigned int val2, const char *str){
-	m_testVal = val;
-	m_testVal2 = val2;
-	m_testStr = strdup(str);
+int  CFilter_ConvFilter::simpleConfig(int val, unsigned int val2, const char *str){
 	return 1;
 }
 
-int  CFilter_Test::selfConfig(char *infoBuf)
+int  CFilter_ConvFilter::selfConfig(char *infoBuf)
 {
     TXMLHandlePtr ptHan, ptHanLoad;
     TXMLElePtr t1, t2, t3, t4, t5, t6,t7;
@@ -184,18 +159,18 @@ int  CFilter_Test::selfConfig(char *infoBuf)
 	return E_OK;
 }
 
-int  CFilter_Test::queryRuntimeInfo(char *infoBuf, int bufsz){
+int  CFilter_ConvFilter::queryRuntimeInfo(char *infoBuf, int bufsz){
 	if(infoBuf == NULL || bufsz <= 100)
 		return -1;
 
-    sprintf(infoBuf, CFilter_Test::parameter_format, m_type,
+    sprintf(infoBuf, CFilter_ConvFilter::parameter_format, m_type,
             m_gain1, m_gain2, m_gain3);
 
 	return 1;
 }
 
-// 设置参数, format, width, height
-int  CFilter_Test::setParams(RawImage_Info *pInfo){
+int  CFilter_ConvFilter::setParams(RawImage_Info *pInfo)
+{
 	if(pInfo == NULL)
 		return E_BAD_ARG;
 
@@ -258,18 +233,18 @@ int  CFilter_Test::setParams(RawImage_Info *pInfo){
 	return E_OK;
 }
 
-int  CFilter_Test::update(void *pErr){
+int  CFilter_ConvFilter::update(void *pErr){
 	return 1;
 }
 
-int  CFilter_Test::getOutInfo(RawImage_Info *out){
+int  CFilter_ConvFilter::getOutInfo(RawImage_Info *out){
 	if(out == NULL)
 		return E_BAD_ARG;
 	*out = m_inInfo;
 	return E_OK;
 }
 
-int  CFilter_Test::filter_444_type0(unsigned char **ppData, int *pLen)
+int  CFilter_ConvFilter::filter_444_type0(unsigned char **ppData, int *pLen)
 {
     if(ppData == NULL || pLen == NULL)
         return E_BAD_ARG;
@@ -308,7 +283,7 @@ int  CFilter_Test::filter_444_type0(unsigned char **ppData, int *pLen)
     }
     return 1;
 }
-int  CFilter_Test::filter_yuv420_type0(unsigned char **ppData, int *pLen)
+int  CFilter_ConvFilter::filter_yuv420_type0(unsigned char **ppData, int *pLen)
 {
     if(ppData == NULL || pLen == NULL)
         return E_BAD_ARG;
@@ -356,7 +331,7 @@ int  CFilter_Test::filter_yuv420_type0(unsigned char **ppData, int *pLen)
     return 1;
 }
 
-int  CFilter_Test::filter_444_type1(unsigned char **ppData, int *pLen)
+int  CFilter_ConvFilter::filter_444_type1(unsigned char **ppData, int *pLen)
 {
     if(ppData == NULL || pLen == NULL)
         return E_BAD_ARG;
@@ -398,7 +373,7 @@ int  CFilter_Test::filter_444_type1(unsigned char **ppData, int *pLen)
     return 1;
 }
 
-int  CFilter_Test::filter_yuv420_type1(unsigned char **ppData, int *pLen)
+int  CFilter_ConvFilter::filter_yuv420_type1(unsigned char **ppData, int *pLen)
 {
     if(ppData == NULL || pLen == NULL)
         return E_BAD_ARG;
@@ -446,7 +421,7 @@ int  CFilter_Test::filter_yuv420_type1(unsigned char **ppData, int *pLen)
 }
 
 // filter
-int  CFilter_Test::filter(unsigned char **ppData, int *pLen){
+int  CFilter_ConvFilter::filter(unsigned char **ppData, int *pLen){
 
     if(m_type)
     {
@@ -478,16 +453,17 @@ int  CFilter_Test::filter(unsigned char **ppData, int *pLen){
     }
 
 
+    return 1;
+}
+
+
+int  CFilter_ConvFilter::destroy(){
 	return 1;
 }
 
-int  CFilter_Test::destroy(){
-	return 1;
-}
-
-CFilter_Test* CFilter_Test::getNewInstance()
+CFilter_ConvFilter* CFilter_ConvFilter::getNewInstance()
 {
-    CFilter_Test *tmp = new CFilter_Test;
+    CFilter_ConvFilter *tmp = new CFilter_ConvFilter;
     if(tmp != NULL)
     {
         return tmp;
@@ -498,10 +474,13 @@ CFilter_Test* CFilter_Test::getNewInstance()
     }
 }
 
-int filter_test_get_interface(void **ppIntf){
+int filter_conv_get_interface(void **ppIntf){
 	if(ppIntf == NULL)
 		return -1;
 
-	*ppIntf = new CFilter_Test;
+    *ppIntf = new CFilter_ConvFilter;
 	return *ppIntf != NULL;
 }
+
+
+

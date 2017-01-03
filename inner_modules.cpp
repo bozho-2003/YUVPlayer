@@ -17,6 +17,7 @@
 
 #include "filter_test.h"
 #include "filter_mirror.h"
+#include "filter_conv.h"
 
 int inner_formaters_num = 10;
 yuv_formater_get_interface_func inner_formaters[] = {
@@ -32,9 +33,10 @@ yuv_formater_get_interface_func inner_formaters[] = {
     formater_rgb24_get_interface,
 };
 
-int inner_image_filters_num = 2;
+int inner_image_filters_num = 3;
 image_filter_get_interface_func inner_image_filters[] = {
     filter_test_get_interface,
-    filter_mirror_get_interface
+    filter_mirror_get_interface,
+    filter_conv_get_interface
 };
 

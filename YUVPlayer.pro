@@ -60,7 +60,8 @@ SOURCES += main.cpp\
     tinyxml/source/tinyxml.cpp \
     tinyxml/source/tinyxmlerror.cpp \
     tinyxml/source/tinyxmlparser.cpp \
-    tinyxml/source/uti_xmlparse.cpp
+    tinyxml/source/uti_xmlparse.cpp \
+    filter/source/filter_conv.cpp
 
 HEADERS  += \
     common.h \
@@ -98,7 +99,8 @@ HEADERS  += \
     filter/include/filter_mirror.h \
     tinyxml/include/tinystr.h \
     tinyxml/include/tinyxml.h \
-    tinyxml/include/uti_xmlparse.h
+    tinyxml/include/uti_xmlparse.h \
+    filter/include/filter_conv.h
 
 FORMS    += \
     imagewidget.ui \
