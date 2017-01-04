@@ -13,10 +13,15 @@ public:
 	int m_off1;
 	int m_off2;
 	int m_off3;
+    unsigned char *m_img_out;
 	
     //int m_type;
-    char kernel_str[1024];
-    int kernel_val[16 * 16];
+    int m_kernel_w;
+    int m_kernel_h;
+    char m_kernel_str[1024];
+    int m_kernel_size;
+    int m_kernel_val[16 * 16];
+
 
     int m_testVal;
     unsigned int m_testVal2;
@@ -42,10 +47,10 @@ public:
     int  getOutInfo(RawImage_Info *out);
 
     // filter
-    int  filter_444_type0(unsigned char **ppData, int *pLen);
-    int  filter_yuv420_type0(unsigned char **ppData, int *pLen);
-    int  filter_444_type1(unsigned char **ppData, int *pLen);
-    int  filter_yuv420_type1(unsigned char **ppData, int *pLen);
+    int  conv_filter_yuv420(unsigned char **ppData, int *pLen);
+    int  conv_filter_444(unsigned char **ppData, int *pLen);
+
+    int  conv_filter_pixel(unsigned char *p1, unsigned char *p1_dst, int row, int column);
 
     int  filter(unsigned char **ppData, int *pLen);
 	

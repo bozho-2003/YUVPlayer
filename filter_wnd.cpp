@@ -434,6 +434,7 @@ void FilterWnd::onApplyProperty()
                     m_ppFilters[i]->pItem->queryRuntimeInfo(m_filterInfo, m_filterInfo_len);
                     QString filter_conf = getFilterNewConf(QString(m_filterInfo));
 
+                    //qDebug() << filter_conf;
                     QString map_key = addItemToFilterMap(QString(filter_name), filter_conf, QString(" - new"));
                     itemChoosen->setText(map_key);
                 }
@@ -615,6 +616,11 @@ void FilterWnd::setAProperty(TXMLHandlePtr ptHan, QString propertyName, QString 
                             int val = valStr.toInt();
                             XMLSetElementAttributel32(tVal, "value", val);
                         }
+                        else if (QString(type) == QString("str") && QString(name) == propertyName)
+                        {
+                            TXMLElePtr tVal = XMLGetFirstChildElement(tParaInfo, "val");
+                            XMLSetElementAttributes8(tVal, "value", valStr.toStdString().c_str());
+                        }
                     }
                 }
             }
@@ -668,18 +674,17 @@ void FilterWnd::getAProperty(TXMLElePtr tIn)
                 }
                 else if (QString(type) == QString("int"))
                 {
-                    TXMLElePtr tMin = XMLGetFirstChildElement(tParaInfo, "min");
-                    TXMLElePtr tMax = XMLGetFirstChildElement(tParaInfo, "max");
-                    TXMLElePtr tVal = XMLGetFirstChildElement(tParaInfo, "val");
-                    TXMLElePtr tVisibility = XMLGetFirstChildElement(tParaInfo, "visibility");
-                    TXMLElePtr tName = XMLGetFirstChildElement(tParaInfo, "showname");
-                    int min, max, val, visibility_flag;
-                    XMLGetElementAttributel32(tMin, "value", &min);
-                    XMLGetElementAttributel32(tMax, "value", &max);
-                    XMLGetElementAttributel32(tVal, "value", &val);
-                    XMLGetElementAttributel32(tVisibility, "value", &visibility_flag);
-                    const char *name_str = XMLGetElementText(tName);
-
+                        TXMLElePtr tMin = XMLGetFirstChildElement(tParaInfo, "min");
+                        TXMLElePtr tMax = XMLGetFirstChildElement(tParaInfo, "max");
+                        TXMLElePtr tVal = XMLGetFirstChildElement(tParaInfo, "val");
+                        TXMLElePtr tVisibility = XMLGetFirstChildElement(tParaInfo, "visibility");
+                        TXMLElePtr tName = XMLGetFirstChildElement(tParaInfo, "showname");
+                        int min, max, val, visibility_flag;
+                        XMLGetElementAttributel32(tMin, "value", &min);
+                        XMLGetElementAttributel32(tMax, "value", &max);
+                        XMLGetElementAttributel32(tVal, "value", &val);
+                        XMLGetElementAttributel32(tVisibility, "value", &visibility_flag);
+                        const char *name_str = XMLGetElementText(tName);
 
                     item = m_variantManager->addProperty(QVariant::Int, QLatin1String(name_str));
                     item->setValue(val);
@@ -709,6 +714,21 @@ void FilterWnd::getAProperty(TXMLElePtr tIn)
                     item->setAttribute(QLatin1String("maximum"), max);
                     item->setAttribute(QLatin1String("singleStep"), 0.01);
                     item->setAttribute(QLatin1String("decimals"), 3);
+                    topItem->addSubProperty(item);
+                    m_property_dic[QString(name)] =item;
+                }
+                else if (QString(type) == QString("str"))
+                {
+                    TXMLElePtr tVal = XMLGetFirstChildElement(tParaInfo, "val");
+                    TXMLElePtr tVisibility = XMLGetFirstChildElement(tParaInfo, "visibility");
+                    TXMLElePtr tName = XMLGetFirstChildElement(tParaInfo, "showname");
+                    float min, max, val, visibility_flag;
+                    const char * val_str = XMLGetElementAttributes8(tVal, "value");
+                    XMLGetElementAttributef32(tVisibility, "value", &visibility_flag);
+                    const char *name_str = XMLGetElementText(tName);
+
+                    item = m_variantManager->addProperty(QVariant::String, QLatin1String(name_str));
+                    item->setValue(val_str);
                     topItem->addSubProperty(item);
                     m_property_dic[QString(name)] =item;
                 }

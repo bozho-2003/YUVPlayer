@@ -17,29 +17,6 @@ const char *CFilter_Mirror::parameter_format =
 "  <para>"
 "    <label index = \"1\">"
 "      <showname><![CDATA[base parameter]]></showname>"
-"      <parainfo name=\"sensitivity\" type=\"list\">"
-"        <!-- 灵敏度 -->"
-"        <list name=\"high\" value = \"100\"/>"
-"        <list name=\"medium\" value = \"80\"/>"
-"        <list name=\"low\" value = \"60\"/>"
-"        <val value = \"%d\"/>"
-"        <modflag value = \"1\"/>"
-"        <visibility value = \"1\"/>"
-"        <showname><![CDATA[sensitivity ]]></showname>"
-"        <comment><![CDATA[adjust sensitive]]></comment>"
-"      </parainfo>"
-"    </label>"
-"    <label index = \"2\">"
-"      <showname><![CDATA[advanced parameters]]></showname>"
-"      <parainfo name=\"binarythresh\" type=\"int\">"
-"        <min value = \"0\"/>"
-"        <max value = \"255\"/>"
-"        <val value = \"%d\"/>"
-"        <modflag value = \"1\"/>"
-"        <visibility value = \"0\"/>"
-"        <showname><![CDATA[threshold]]></showname>"
-"        <comment><![CDATA[0,255]]]></comment>"
-"      </parainfo>"
 "    </label>"
 "  </para>"
 "</filterinfo>";
@@ -89,19 +66,18 @@ int  CFilter_Mirror::queryRuntimeInfo(char *infoBuf, int bufsz){
 	if(infoBuf == NULL || bufsz <= 100)
 		return -1;
 
-    sprintf(infoBuf, CFilter_Mirror::parameter_format,
-            m_frame_size, m_testVal);
-            //m_frame_size, m_testVal, m_testVal2, m_testStr ? m_testStr:"NULL");
+    sprintf(infoBuf, CFilter_Mirror::parameter_format);
 
 	return 1;
 }
 
-// 设置参数, format, width, height
+//format, width, height
 int  CFilter_Mirror::setParams(RawImage_Info *pInfo){
 	if(pInfo == NULL)
 		return E_BAD_ARG;
 
 	if(pInfo->raw_format != RAW_FORMAT_YUV444 
+        && pInfo->raw_format != RAW_FORMAT_YUV420
 		&& pInfo->raw_format != RAW_FORMAT_BGR24 
 		&& pInfo->raw_format != RAW_FORMAT_RGB24
 		&& pInfo->raw_format != RAW_FORMAT_GREY8){
@@ -112,7 +88,16 @@ int  CFilter_Mirror::setParams(RawImage_Info *pInfo){
 		return E_UNSUPPORTTED;
 
 	m_inInfo = *pInfo;
-	if(m_inInfo.raw_format == RAW_FORMAT_YUV444 ){
+    if(m_inInfo.raw_format == RAW_FORMAT_YUV420 )
+    {
+        m_frame_size = m_inInfo.width*m_inInfo.height;
+        m_off1 = 0;
+        m_off2 = m_frame_size;
+        m_off3 = m_frame_size * 5 / 4;
+        m_frame_size = m_inInfo.width*m_inInfo.height * 3 / 2;
+        m_line_extra_bytes = 0;
+    }
+    else if(m_inInfo.raw_format == RAW_FORMAT_YUV444 ){
 		m_frame_size = m_inInfo.width*m_inInfo.height;
 		m_off1 = 0;
 		m_off2 = m_frame_size;
@@ -185,7 +170,46 @@ int  CFilter_Mirror::filter(unsigned char **ppData, int *pLen){
 	if(ppData == NULL || nBytes < m_frame_size)
 		return E_BAD_ARG;
 
-	if(m_inInfo.raw_format == RAW_FORMAT_BGR24
+    if(m_inInfo.raw_format == RAW_FORMAT_YUV420 )
+    {
+        int i,j;
+        unsigned char *p1,*p2,*p3;
+        unsigned char *p21,*p22,*p23;
+
+        p1 = pData + m_off1;
+        p2 = pData + m_off2;
+        p3 = pData + m_off3;
+
+        p21 = m_pBuf + m_off1;
+        p22 = m_pBuf + m_off2;
+        p23 = m_pBuf + m_off3;
+
+        for(i = 0;i < m_inInfo.height;i++)
+        {
+            for(j = 0; j < m_inInfo.width;j++)
+            {
+                if(m_off2 >= 0)
+                {
+                    p21[i * m_inInfo.width + m_inInfo.width - 1 - j] = p1[i * m_inInfo.width + j];
+                }
+            }
+        }
+
+        for(i = 0;i < (m_inInfo.height / 2);i++){
+            for(j = 0;j < (m_inInfo.width / 2);j++)
+            {
+                if(m_off2 >= 0)
+                {
+                    p22[i * (m_inInfo.width / 2) + (m_inInfo.width / 2) - 1 - j] = p2[i * (m_inInfo.width / 2) + j];
+                }
+                if(m_off3 >= 0)
+                {
+                    p23[i * (m_inInfo.width / 2) +  (m_inInfo.width / 2) - 1 - j] = p3[i * (m_inInfo.width / 2) + j];
+                }
+            }
+        }
+    }
+    else if(m_inInfo.raw_format == RAW_FORMAT_BGR24
 		|| m_inInfo.raw_format == RAW_FORMAT_RGB24){
 		unsigned char *p1, *p2;
 		int i, j;
