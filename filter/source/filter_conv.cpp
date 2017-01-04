@@ -405,7 +405,8 @@ int  CFilter_ConvFilter::conv_filter_yuv420(unsigned char **ppData, int *pLen)
         }
     }
 
-    for(i = 0;i < (m_inInfo.height / 2);i++){
+    for(i = 0;i < (m_inInfo.height / 2);i++)
+    {
         for(j = 0;j < (m_inInfo.width / 2);j++)
         {
             if(m_off2 >= 0)
